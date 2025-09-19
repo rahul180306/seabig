@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
+import LogoFish from "@/components/LogoFish";
+import NavCapsule from "@/components/NavCapsule";
+import RouteFade from "@/components/RouteFade";
+import SearchBox from "@/components/SearchBox";
+import NavOffsetProvider from "@/components/NavOffsetProvider";
+import { Comfortaa } from "next/font/google";
 import "./globals.css";
+import "leaflet/dist/leaflet.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const comfortaa = Comfortaa({
+  variable: "--font-comfortaa",
   subsets: ["latin"],
 });
 
@@ -24,10 +26,29 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className={`${comfortaa.variable} antialiased`}>
+        {}
+        <header className="fixed top-0 left-0 z-30 p-6 select-none">
+          <Link href="/" className="flex items-center gap-3 drop-shadow-[0_2px_2px_rgba(0,0,0,0.35)]">
+            <span className="logo-swim-glide">
+              <span className="logo-swim-wobble">
+                <LogoFish width={72} height={72} title="SeaBig logo" />
+              </span>
+            </span>
+            <span className="text-5xl sm:text-6xl font-extrabold tracking-wide">
+              <span style={{ color: "#003366" }}>SAMUDRIKSHA</span>
+            </span>
+          </Link>
+        </header>
+
+  <div className="fixed top-0 right-0 z-30 p-6 flex items-center gap-3">
+          <SearchBox className="mr-2" />
+          <NavCapsule />
+        </div>
+        <NavOffsetProvider />
+        <RouteFade>
+          {children}
+        </RouteFade>
       </body>
     </html>
   );
