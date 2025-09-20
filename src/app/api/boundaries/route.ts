@@ -34,6 +34,19 @@ async function tryPaths(paths: string[]): Promise<GeoJsonObject | null> {
 
 export async function GET() {
   try {
+    const gcsUrl = process.env.BOUNDARIES_GCS_SIGNED_URL;
+    if (gcsUrl) {
+      try {
+        const res = await fetch(gcsUrl, ACCEPT_HDR);
+        if (res.ok) {
+          const data = await res.json();
+          if (isGeo(data)) return Response.json(data);
+        }
+      } catch (err) {
+        console.error("GCS fetch failed:", err);
+      }
+    }
+
   const configured = process.env.BOUNDARIES_GEOJSON_PATH || "/map/boundaries/geojson";
   const candidates = ["/map/boundaries/geojson", configured, "/map/eez/geojson", "/map/boundaries"]; // prefer known path
     const geo = await tryPaths(candidates);
