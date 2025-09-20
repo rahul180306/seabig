@@ -25,7 +25,7 @@ Each route guarantees a `FeatureCollection` (possibly empty) so the front-end st
 | `API_BASE_URL` | Base URL of FastAPI backend (server-side). |
 | `NEXT_PUBLIC_API_BASE_URL` | Public base URL if client needs direct calls (optional). |
 | `BACKEND_API_KEY` | Optional auth key sent to backend (if required). |
-| `BOUNDARIES_GCS_SIGNED_URL` | Signed URL for GCS EEZ GeoJSON (e.g., gs://samudriksha/eez.geojson). |
+| `BOUNDARIES_GCS_SIGNED_URL` | Signed URL for GCS EEZ GeoJSON (e.g., gs://samudriksha/eez_borders.geojson). |
 | `SPECIES_DATA_URL` | Absolute URL (e.g., GCS signed URL) for simple species array/GeoJSON. |
 | `SPECIES_OCCURRENCE_URL` | Absolute URL for occurrence dataset (GBIF/OBIS style JSON or GeoJSON). |
 | `SPECIES_DATA_ENDPOINTS` | Comma-separated backend paths to aggregate (e.g. `/species,/occurrences,/plankton`). |
@@ -60,12 +60,12 @@ Troubleshooting:
 
 If your EEZ GeoJSON is stored in GCS (e.g., bucket `samudriksha`):
 
-1. Generate a signed URL for the file (e.g., `gs://samudriksha/eez.geojson`):
+1. Generate a signed URL for the file (e.g., `gs://samudriksha/eez_borders.geojson`):
    - Use `gsutil signurl` or Google Cloud Console to create a signed URL with read access.
-   - Example command: `gsutil signurl -d 1d gs://samudriksha/eez.geojson`
+   - Example command: `gsutil signurl -d 1d gs://samudriksha/eez_borders.geojson`
 2. Add to `.env.local`:
    ```bash
-   BOUNDARIES_GCS_SIGNED_URL=https://storage.googleapis.com/samudriksha/eez.geojson?X-Goog-Algorithm=GOOG4-RSA-SHA256&...
+   BOUNDARIES_GCS_SIGNED_URL=https://storage.googleapis.com/samudriksha/eez_borders.geojson?X-Goog-Algorithm=GOOG4-RSA-SHA256&...
    ```
 3. Restart dev server.
 4. The `/api/boundaries` route will prioritize GCS if the URL is set, falling back to backend if fetch fails.
