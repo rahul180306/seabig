@@ -5,7 +5,7 @@ import React from "react";
 
 const ITEMS = [
   { href: "/", label: "Home" },
-  { href: "/about", label: "About us" },
+  { href: "/news", label: "News" },
   { href: "/services", label: "Services" },
   { href: "/data", label: "Data" },
 ] as const;

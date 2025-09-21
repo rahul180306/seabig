@@ -1,97 +1,126 @@
-import { backendGet, API_BASE_URL } from "@/lib/serverApi";
-import type { Feature, FeatureCollection, Geometry } from "geojson";
+// cspell:ignore decimallatitude decimallongitude decimallat decimallong
+import { NextResponse } from 'next/server';
+import { requireApiKey } from '../../../lib/requireApiKey';
 
-export const dynamic = "force-dynamic";
+type Row = { [k: string]: string };
 
-type RawOccurrence = Record<string, unknown> & {
-  decimalLatitude?: number; decimalLongitude?: number;
-  lat?: number; latitude?: number; y?: number; // latitude keys
-  lng?: number; lon?: number; long?: number; longitude?: number; x?: number; // longitude keys
-  species?: string; scientificName?: string; vernacularName?: string; name?: string;
-  eventDate?: string; date?: string; recordedBy?: string; basisOfRecord?: string; occurrenceID?: string | number;
-};
+const cellRe = /\s*(?:"((?:[^"]|"")*)"|([^,]*))\s*(?:,|$)/g;
 
-function toNum(v: unknown): number | null {
-  if (typeof v === "number" && isFinite(v)) return v;
-  if (typeof v === "string") {
-    const n = Number(v.trim());
-    if (!Number.isNaN(n)) return n;
+function parseHeader(line: string): string[] {
+  const headers: string[] = [];
+  let m: RegExpExecArray | null;
+  cellRe.lastIndex = 0;
+  while ((m = cellRe.exec(line)) !== null) {
+    const val = m[1] !== undefined ? m[1].replace(/""/g, '"') : (m[2] || '');
+    headers.push(val.trim());
+    if (m[0].length === 0) break; // safety
   }
-  return null;
+  return headers;
 }
 
-interface RawResultsWrapper { results?: unknown; type?: unknown }
-
-function buildFeature(item: RawOccurrence): Feature | null {
-  const lat = toNum(item.decimalLatitude ?? item.lat ?? item.latitude ?? item.y);
-  const lng = toNum(item.decimalLongitude ?? item.lng ?? item.lon ?? item.long ?? item.longitude ?? item.x);
-  if (lat == null || lng == null) return null;
-  const species = String(item.species ?? item.scientificName ?? item.vernacularName ?? item.name ?? "Unknown");
-  const props: Record<string, unknown> = { species };
-  if (item.eventDate || item.date) props.date = item.eventDate || item.date;
-  if (item.recordedBy) props.recordedBy = item.recordedBy;
-  if (item.basisOfRecord) props.basisOfRecord = item.basisOfRecord;
-  if (item.occurrenceID) props.occurrenceID = item.occurrenceID;
-  const geom: Geometry = { type: "Point", coordinates: [lng, lat] };
-  return { type: "Feature", geometry: geom, properties: props };
+function parseRow(line: string, headers: string[]): Row {
+  const obj: Row = {};
+  let m: RegExpExecArray | null;
+  cellRe.lastIndex = 0;
+  let col = 0;
+  while ((m = cellRe.exec(line)) !== null && col < headers.length) {
+    const val = m[1] !== undefined ? m[1].replace(/""/g, '"') : (m[2] || '');
+    obj[headers[col] || `col${col}`] = val;
+    col++;
+    if (m[0].length === 0) break;
+  }
+  while (col < headers.length) {
+    obj[headers[col] || `col${col}`] = '';
+    col++;
+  }
+  return obj;
 }
 
-function fromArray(arr: unknown[]): Feature[] {
-  const out: Feature[] = [];
-  for (const r of arr) {
-    if (!r || typeof r !== "object") continue;
-    const f = buildFeature(r as RawOccurrence);
-    if (f) out.push(f);
+function parseCsv(text: string): Row[] {
+  const rows: Row[] = [];
+  if (!text) return rows;
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  if (lines.length === 0) return rows;
+  const headerLine = lines.shift() || '';
+  const headers = parseHeader(headerLine);
+  for (const line of lines) {
+    if (!line) continue;
+    rows.push(parseRow(line, headers));
   }
-  return out;
+  return rows;
 }
 
-function normalize(raw: unknown): FeatureCollection {
-  if (raw && typeof raw === "object" && (raw as { type?: unknown }).type === "FeatureCollection") {
-    return raw as FeatureCollection;
-  }
-  if (Array.isArray(raw)) {
-    return { type: "FeatureCollection", features: fromArray(raw) };
-  }
-  if (raw && typeof raw === "object") {
-    const wrapper = raw as RawResultsWrapper;
-    if (Array.isArray(wrapper.results)) {
-      return { type: "FeatureCollection", features: fromArray(wrapper.results) };
-    }
-  }
-  return { type: "FeatureCollection", features: [] };
+function inBBox(latS: number, lonS: number, minLat: number, minLon: number, maxLat: number, maxLon: number) {
+  return latS >= minLat && latS <= maxLat && lonS >= minLon && lonS <= maxLon;
 }
 
-async function fetchDirect(url: string): Promise<unknown> {
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`occurrences fetch ${res.status}`);
-  const ct = res.headers.get("content-type") || "";
-  if (/json/i.test(ct)) return res.json();
-  return res.text();
-}
+export async function GET(req: Request) {
+  const bad = requireApiKey(req);
+  if (bad) return bad;
 
-export async function GET() {
+  const url = new URL(req.url);
+  const object = url.searchParams.get('object');
+  const page = Number(url.searchParams.get('page') || '1');
+  const perPage = Math.min(200, Number(url.searchParams.get('per_page') || '100'));
+  const species = url.searchParams.get('species')?.toLowerCase();
+  const startDate = url.searchParams.get('start_date');
+  const endDate = url.searchParams.get('end_date');
+  const latField = url.searchParams.get('lat_field') ?? '';
+  const lonField = url.searchParams.get('lon_field') ?? '';
+  const bbox = url.searchParams.get('bbox'); // minLon,minLat,maxLon,maxLat
+
+  if (!object) return NextResponse.json({ error: 'missing object param' }, { status: 400 });
+
   try {
-
-    const direct = process.env.SPECIES_OCCURRENCE_URL;
-    let data: unknown = null;
-    if (direct) {
-      try { data = await fetchDirect(direct); } catch (e) { console.warn("Direct occurrence URL failed:", (e as Error).message); }
+    const res = await fetch(`https://storage.googleapis.com/samudriksha/${object}`);
+    if (!res.ok) {
+      console.error('GCS fetch failed', object, res.status, res.statusText);
+      return NextResponse.json({ error: 'fetch failed' }, { status: 502 });
     }
-    if (data == null) {
-      if (!API_BASE_URL) throw new Error("API_BASE_URL not set and no SPECIES_OCCURRENCE_URL provided");
-      try {
+    const text = await res.text();
+    let rows: Row[] = [];
+    try {
+      rows = parseCsv(text);
+    } catch (err) {
+      console.error('CSV parse error for', object, err);
+      return NextResponse.json({ error: 'csv parse error' }, { status: 500 });
+    }
 
-        try { data = await backendGet<unknown>("/occurrences"); } catch { data = await backendGet<unknown>("/species"); }
-      } catch (e) {
-        console.error("Backend occurrences fetch failed:", (e as Error).message);
-        data = [];
+    // detect lat/lon fields if not provided
+    const commonLat = ['decimallatitude', 'decimallat', 'latitude', 'lat'];
+    const commonLon = ['decimallongitude', 'decimallong', 'longitude', 'lon', 'lng'];
+    const headers = rows.length ? Object.keys(rows[0]).map((h) => String(h).toLowerCase()) : [];
+    const pickField = (preferred: string, candidates: string[]) => {
+      if (preferred) return preferred;
+      for (const c of candidates) {
+        const idx = headers.indexOf(c);
+        if (idx >= 0) return Object.keys(rows[0])[idx];
       }
+      return null;
+    };
+    const latKey = pickField(latField, commonLat);
+    const lonKey = pickField(lonField, commonLon);
+
+    // filter
+    let filtered = rows;
+    if (species) filtered = filtered.filter((r) => (r['species'] || '').toLowerCase().includes(species));
+    if (startDate) filtered = filtered.filter((r) => (r['eventDate'] || r['date'] || '') >= startDate);
+    if (endDate) filtered = filtered.filter((r) => (r['eventDate'] || r['date'] || '') <= endDate);
+    if (bbox) {
+      const [minLon, minLat, maxLon, maxLat] = bbox.split(',').map(Number);
+      filtered = filtered.filter((r) => {
+        const lat = Number((latKey ? r[latKey] : r['decimalLatitude']) || r['lat'] || 'NaN');
+        const lon = Number((lonKey ? r[lonKey] : r['decimalLongitude']) || r['lon'] || 'NaN');
+        if (Number.isNaN(lat) || Number.isNaN(lon)) return false;
+        return inBBox(lat, lon, minLat, minLon, maxLat, maxLon);
+      });
     }
-    const fc = normalize(data);
-    return Response.json(fc);
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ error: msg }), { status: 502, headers: { "content-type": "application/json" } });
+
+    const total = filtered.length;
+    const start = (page - 1) * perPage;
+    const pageRows = filtered.slice(start, start + perPage);
+    return NextResponse.json({ total, page, per_page: perPage, results: pageRows });
+  } catch {
+    return NextResponse.json({ error: 'server error' }, { status: 500 });
   }
 }

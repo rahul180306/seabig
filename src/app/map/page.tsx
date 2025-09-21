@@ -1,18 +1,14 @@
-import AppleLikeMap from "@/components/AppleLikeMap";
-
-export const revalidate = 0;
+import MapClientLoader from '@/components/MapClientLoader';
 
 export default function MapPage() {
-
   return (
-    <main className="px-4 sm:px-6 pb-10" style={{ paddingTop: 120 }}>
-      <div className="mx-auto max-w-7xl">
-        <section className="rounded-2xl bg-white ring-1 ring-black/10 shadow-[0_8px_28px_rgba(0,0,0,0.15)] p-4 sm:p-6">
-          <h1 className="mb-4 text-2xl font-bold text-black">India Map</h1>
-          <div style={{ height: "70vh" }}>
-            <AppleLikeMap center={[20.5937, 78.9629]} zoom={4} />
-          </div>
-        </section>
+    <main style={{ paddingTop: 'var(--nav-offset, 96px)' }} className="px-4 sm:px-6">
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16, color: '#07203a' }}>Interactive map</h1>
+      </div>
+
+      <div style={{ width: '100%', height: 'calc(100vh - 160px)', minHeight: 520 }}>
+        <MapClientLoader className="w-full h-full" />
       </div>
     </main>
   );

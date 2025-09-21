@@ -1,0 +1,13 @@
+# SeaBig Project Outline
+
+## Overview
+SeaBig is an innovative web application designed to explore and visualize marine biodiversity data. It combines interactive mapping, data analytics, and AI-powered chat functionality to provide users with insights into marine species distribution, supporting conservation efforts and scientific research.
+
+## Technical Approach
+The project is built using Next.js 15 with TypeScript and Tailwind CSS for a modern, responsive frontend. For mapping, we employ Leaflet with Supercluster for efficient clustering of over 87,000 species points, rendered on a custom canvas layer to ensure smooth performance even with large datasets. Data is sourced from Google Cloud Storage (GCS) and processed server-side through Next.js API routes, implementing robust CSV parsing and streaming. The AI chatbot integrates DeepSeek R1 model via Google Cloud Vertex AI, using OAuth2 authentication with service account credentials for secure API calls. The application follows a component-based architecture with client-side interactivity and server-side rendering for optimal SEO and performance.
+
+## Future Implementation
+Future enhancements include expanding the dataset integration to support real-time data feeds from oceanographic sensors and satellite imagery. We plan to implement advanced machine learning models for species prediction and habitat analysis, potentially using TensorFlow.js for client-side processing. The chatbot will be enhanced with multi-modal capabilities, allowing users to upload images for species identification. Scalability improvements will involve migrating to a microservices architecture with containerization using Docker and Kubernetes. Additionally, we aim to develop a mobile application using React Native to extend accessibility for field researchers and citizen scientists.
+
+## Real World Impact
+SeaBig addresses critical challenges in marine conservation by democratizing access to biodiversity data, enabling researchers, policymakers, and the public to make informed decisions about ocean protection. The interactive mapping helps identify biodiversity hotspots and vulnerable areas, supporting targeted conservation strategies. By integrating AI chat capabilities, the platform facilitates knowledge sharing and education, potentially increasing public awareness and engagement with marine issues. The technical innovations in data visualization and performance optimization set a precedent for handling large geospatial datasets, which can be applied to other environmental monitoring domains. Ultimately, SeaBig contributes to global sustainability goals by empowering stakeholders to protect marine ecosystems more effectively.

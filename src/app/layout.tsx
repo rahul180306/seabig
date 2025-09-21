@@ -4,10 +4,10 @@ import LogoFish from "@/components/LogoFish";
 import NavCapsule from "@/components/NavCapsule";
 import RouteFade from "@/components/RouteFade";
 import SearchBox from "@/components/SearchBox";
-import NavOffsetProvider from "@/components/NavOffsetProvider";
+import SetNavOffsetClient from '@/components/SetNavOffsetClient';
+import Chatbot from '@/components/Chatbot';
 import { Comfortaa } from "next/font/google";
 import "./globals.css";
-import "leaflet/dist/leaflet.css";
 
 const comfortaa = Comfortaa({
   variable: "--font-comfortaa",
@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${comfortaa.variable} antialiased`}>
-        {}
+        {/* Top-left brand */}
         <header className="fixed top-0 left-0 z-30 p-6 select-none">
           <Link href="/" className="flex items-center gap-3 drop-shadow-[0_2px_2px_rgba(0,0,0,0.35)]">
             <span className="logo-swim-glide">
@@ -40,15 +40,18 @@ export default function RootLayout({
             </span>
           </Link>
         </header>
-
+            {/* server-side spacer to reserve space for the fixed header on first paint */}
+            <div aria-hidden="true" style={{ height: 'var(--nav-offset, 220px)', width: '100%' }} />
+            {/* client helper: measure header and set --nav-offset */}
+            <SetNavOffsetClient />
   <div className="fixed top-0 right-0 z-30 p-6 flex items-center gap-3">
           <SearchBox className="mr-2" />
           <NavCapsule />
         </div>
-        <NavOffsetProvider />
         <RouteFade>
           {children}
         </RouteFade>
+  <Chatbot />
       </body>
     </html>
   );

@@ -36,3 +36,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# lint reports
+lint-report.json
+eslint-output.json
+
+# secure keys
+.seabig

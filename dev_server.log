@@ -1,0 +1,96 @@
+
+> seabig@0.1.0 dev
+> next dev --turbopack
+
+ ⚠ Port 3000 is in use by process 48802, using available port 3005 instead.
+   ▲ Next.js 15.5.3 (Turbopack)
+   - Local:        http://localhost:3005
+   - Network:      http://192.168.1.106:3005
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 922ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.2s
+ GET / 200 in 2570ms
+ ✓ Compiled /api/chat in 211ms
+google upstream non-ok {
+  url: 'https://generativelanguage.googleapis.com/v1beta2/models/gemini-1.0:generateText',
+  status: 403,
+  body: '{\n' +
+    '  "error": {\n' +
+    '    "code": 403,\n' +
+    '    "message": "Request had insufficient authentication scopes.",\n' +
+    '    "status": "PERMISSION_DENIED",\n' +
+    '    "details": [\n' +
+    '      {\n' +
+    '        "@type": "type.googleapis.com/google.rpc.ErrorInfo",\n' +
+    '        "reason": "ACCESS_TOKEN_SCOPE_INSUFFICIENT",\n' +
+    '        "domain": "googleapis.com",\n' +
+    '        "metadata": {\n' +
+    '          "method": "google.ai.generativelanguage.v1beta2.TextService.GenerateText",\n' +
+    '          "service": "generativelanguage.googleapis.com"\n' +
+    '        }\n' +
+    '      }\n' +
+    '    ]\n' +
+    '  }\n' +
+    '}\n'
+}
+Gemini proxy error Error: google upstream 403: {
+  "error": {
+    "code": 403,
+    "message": "Request had insufficient authentication scopes.",
+    "status": "PERMISSION_DENIED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/goog
+    at callGoogleModel (src/app/api/chat/route.ts:43:11)
+    at async POST (src/app/api/chat/route.ts:213:21)
+  41 |     const txt = await res.text().catch(() => '<no-body>');
+  42 |     console.error('google upstream non-ok', { url, status: res.status, body: txt.slice ? txt.slice(0, 2000) : String(txt) });
+> 43 |     throw new Error(`google upstream ${res.status}: ${String(txt).slice(0,200)}`);
+     |           ^
+  44 |   }
+  45 |   const json = await res.json();
+  46 |   const candidate = json?.candidates?.[0];
+ POST /api/chat 502 in 1126ms
+google upstream non-ok {
+  url: 'https://generativelanguage.googleapis.com/v1beta2/models/gemini-1.0:generateText',
+  status: 403,
+  body: '{\n' +
+    '  "error": {\n' +
+    '    "code": 403,\n' +
+    '    "message": "Request had insufficient authentication scopes.",\n' +
+    '    "status": "PERMISSION_DENIED",\n' +
+    '    "details": [\n' +
+    '      {\n' +
+    '        "@type": "type.googleapis.com/google.rpc.ErrorInfo",\n' +
+    '        "reason": "ACCESS_TOKEN_SCOPE_INSUFFICIENT",\n' +
+    '        "domain": "googleapis.com",\n' +
+    '        "metadata": {\n' +
+    '          "method": "google.ai.generativelanguage.v1beta2.TextService.GenerateText",\n' +
+    '          "service": "generativelanguage.googleapis.com"\n' +
+    '        }\n' +
+    '      }\n' +
+    '    ]\n' +
+    '  }\n' +
+    '}\n'
+}
+Gemini proxy error Error: google upstream 403: {
+  "error": {
+    "code": 403,
+    "message": "Request had insufficient authentication scopes.",
+    "status": "PERMISSION_DENIED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/goog
+    at callGoogleModel (src/app/api/chat/route.ts:43:11)
+    at async POST (src/app/api/chat/route.ts:213:21)
+  41 |     const txt = await res.text().catch(() => '<no-body>');
+  42 |     console.error('google upstream non-ok', { url, status: res.status, body: txt.slice ? txt.slice(0, 2000) : String(txt) });
+> 43 |     throw new Error(`google upstream ${res.status}: ${String(txt).slice(0,200)}`);
+     |           ^
+  44 |   }
+  45 |   const json = await res.json();
+  46 |   const candidate = json?.candidates?.[0];
+ POST /api/chat 502 in 802ms

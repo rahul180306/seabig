@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import Image from "next/image";
+import Link from "next/link";
 
 type Mode = "12h" | "24h";
 
@@ -34,39 +34,29 @@ function formatDateLine(date: Date) {
 
 export default function ClockStrip() {
   const [mode, setMode] = React.useState<Mode>("12h");
-  const [now, setNow] = React.useState<Date>(() => new Date());
-  const [stats, setStats] = React.useState<{ online: boolean; boundariesCount: number } | null>(null);
+  // Start with null so server and initial client render match (prevents hydration mismatch).
+  const [now, setNow] = React.useState<Date | null>(null);
+  const mountedRef = React.useRef(false);
 
   React.useEffect(() => {
+    mountedRef.current = true;
+    // Initialize time immediately on mount and update every second.
+    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      mountedRef.current = false;
+    };
   }, []);
 
-  React.useEffect(() => {
-    let ignore = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/stats", { cache: "no-store" });
-        if (!res.ok) throw new Error("stats failed");
-        const data = (await res.json()) as { online: boolean; boundariesCount: number };
-        if (!ignore) setStats(data);
-      } catch {
-        if (!ignore) setStats({ online: false, boundariesCount: 0 });
-      }
-    })();
-    return () => { ignore = true; };
-  }, []);
-
-  const { core: time, period } = getTimeParts(now, mode);
-  const dateLine = formatDateLine(now);
-  let backendStatusText = "…";
-  if (stats) backendStatusText = stats.online ? "online" : "offline";
+  const { core: time, period } = now ? getTimeParts(now, mode) : { core: '00:00:00', period: undefined };
+  const dateLine = now ? formatDateLine(now) : '';
 
   return (
     <div className="w-full">
       <div className="w-full">
   <div className="relative w-full bg-transparent px-3 sm:px-6 py-3 sm:py-4 border-b border-black/10">
-          {}
+          {/* Mode toggle - right edge, vertically centered */}
           <div className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-10">
             <div className="flex items-center rounded-full bg-white/70 ring-1 ring-black/10 p-1 shadow-sm">
               <button
@@ -94,7 +84,7 @@ export default function ClockStrip() {
             </div>
           </div>
 
-          {}
+          {/* Big time */}
           <div
             aria-label="Time in India Standard Time"
             className="w-full whitespace-nowrap text-center text-black font-bold tabular-nums tracking-[-0.02em] leading-none select-none text-[clamp(80px,18vw,200px)]"
@@ -107,7 +97,7 @@ export default function ClockStrip() {
             )}
           </div>
 
-          {}
+          {/* Date line */}
           <div className="mt-2 text-center text-sm text-black/70 select-none">
             {dateLine}
           </div>
@@ -119,41 +109,22 @@ export default function ClockStrip() {
           </div>
         </div>
 
-        {}
+        {/* Three cards */}
         <div className="w-full px-3 sm:px-6 pb-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <a href="/map" aria-label="Open interactive world map" className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-2xl">
-            <div className="group relative overflow-hidden rounded-2xl bg-black text-white p-4 sm:p-5 ring-1 ring-white/10 shadow-[0_8px_28px_rgba(0,0,0,0.35)] transition-all duration-300 ease-out transform-gpu will-change-transform hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.5)] hover:ring-white/30 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+            <Link href="/map" className="group relative overflow-hidden rounded-2xl bg-black text-white p-4 sm:p-5 ring-1 ring-white/10 shadow-[0_8px_28px_rgba(0,0,0,0.35)] transition-all duration-300 ease-out transform-gpu will-change-transform hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.5)] hover:ring-white/30 motion-reduce:transition-none motion-reduce:hover:translate-y-0 block">
               <span className="pointer-events-none absolute top-0 left-[-40%] h-full w-[40%] bg-gradient-to-r from-transparent via-white/25 to-transparent -skew-x-12 transform translate-x-0 transition-transform duration-800 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-[240%] motion-reduce:transition-none motion-reduce:transform-none" />
               <div className="flex items-center gap-4 relative z-10">
-                <div className="relative flex-shrink-0 w-[70px] h-[90px] sm:w-[80px] sm:h-[104px] rounded-xl overflow-hidden ring-1 ring-white/30 bg-white/95 shadow-sm transition-colors duration-300 group-hover:ring-white/60">
-                  <Image
-                    src="/pin.png"
-                    alt="Location pin"
-                    fill
-                    sizes="(max-width: 640px) 70px, 80px"
-                    className="object-contain p-2 drop-shadow-sm"
-                    priority
-                  />
+                {/* passport size image */}
+                <div className="relative flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 rounded-xl overflow-hidden ring-1 ring-white/20 bg-white/10 transition-colors duration-300 group-hover:ring-white/40">
+                  <div className="absolute inset-0 grid place-items-center text-white/50 text-xs">Image</div>
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-lg font-bold mb-1">Interactive World Map</h3>
-                  <div className="mt-2 text-xs text-white/70 flex flex-wrap items-center gap-2">
-                    <span>Backend:</span>
-                    <span className={stats?.online ? "text-emerald-400" : "text-rose-400"}>{backendStatusText}</span>
-                    <span aria-hidden className="text-white/40">•</span>
-                    <span>Boundaries:</span>
-                    <span className="text-white">
-                      {stats ? stats.boundariesCount : "…"}
-                    </span>
-                  </div>
-                  <div className="mt-2 text-xs text-white/70 flex items-center gap-2">
-                  </div>
+                  <h3 className="text-lg font-bold mb-1">Card One</h3>
+                  <p className="text-white/80 text-sm">Add content here.</p>
                 </div>
-                <span className="ml-auto text-white/70 text-2xl transition-transform group-hover:translate-x-0.5">→</span>
               </div>
-            </div>
-            </a>
+            </Link>
             <div className="group relative overflow-hidden rounded-2xl bg-black text-white p-4 sm:p-5 ring-1 ring-white/10 shadow-[0_8px_28px_rgba(0,0,0,0.35)] transition-all duration-300 ease-out transform-gpu will-change-transform hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.5)] hover:ring-white/30 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
               <span className="pointer-events-none absolute top-0 left-[-40%] h-full w-[40%] bg-gradient-to-r from-transparent via-white/25 to-transparent -skew-x-12 transform translate-x-0 transition-transform duration-800 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-[240%] motion-reduce:transition-none motion-reduce:transform-none" />
               <div className="flex items-center gap-4 relative z-10">
