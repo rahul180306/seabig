@@ -12,7 +12,7 @@ export default function DataPage() {
   useEffect(() => {
     const fetchList = async (prefix: string, setter: (v: Item[]) => void) => {
       try {
-        const res = await fetch(`/api/gcs-list?bucket=samudriksha&prefix=${encodeURIComponent(prefix)}`);
+        const res = await fetch(`/api/gcs-list?bucket=samudriksha&prefix=${encodeURIComponent(prefix)}&api_key=seabig-data-key`);
         const json = await res.json();
         if (json.items) setter(json.items);
         else setErr('no items');
@@ -92,7 +92,7 @@ export default function DataPage() {
   const previewFile = async (item: Item) => {
     setPreviewName(item.name);
     setPreview('Loading…');
-    const res = await fetch(`/api/gcs-fetch?bucket=samudriksha&object=${encodeURIComponent(item.name)}&bytes=50000`);
+    const res = await fetch(`/api/gcs-fetch?bucket=samudriksha&object=${encodeURIComponent(item.name)}&bytes=50000&api_key=seabig-data-key`);
     const j = await res.json();
     setPreview(j.preview || j.error || 'No preview');
   };
@@ -100,7 +100,7 @@ export default function DataPage() {
   const downloadZip = async () => {
     const objects = Object.keys(selected).filter((k) => selected[k]);
     if (!objects.length) return alert('Select files first');
-    const res = await fetch('/api/gcs-zip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bucket: 'samudriksha', objects }) });
+    const res = await fetch('/api/gcs-zip', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': 'seabig-data-key' }, body: JSON.stringify({ bucket: 'samudriksha', objects }) });
     if (!res.ok) return alert('Zip failed');
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
